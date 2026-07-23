@@ -57,6 +57,7 @@ func newRunPhaseTestCommand(t *testing.T) *cobra.Command {
 	cmd.Flags().String("model", "", "")
 	cmd.Flags().String("api-key", "", "")
 	cmd.Flags().Int("parallelism", 0, "")
+	cmd.Flags().Bool("baseline", false, "")
 	cmd.Flags().SetNormalizeFunc(normalizeRunFlagName)
 	cmd.Flags().StringArray(runtimeKwargFlagName, nil, "")
 	var verbose verbosityValue
@@ -1278,6 +1279,41 @@ func TestApplyRunConfigOverrides_ParallelismUnsetPreservesConfig(t *testing.T) {
 	}
 	if got := cfg.Cases.Parallelism; got != 3 {
 		t.Fatalf("Cases.Parallelism = %d, want 3", got)
+	}
+}
+
+func TestApplyRunConfigOverrides_BaselineEnablesBenchmark(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("baseline", false, "")
+	if err := cmd.Flags().Set("baseline", testFlagBoolTrue); err != nil {
+		t.Fatalf("set baseline: %v", err)
+	}
+
+	cfg := config.DefaultEvalConfig()
+	cfg.Benchmark.Enabled = false
+	if err := applyRunConfigOverrides(cfg, cmd); err != nil {
+		t.Fatalf("applyRunConfigOverrides: %v", err)
+	}
+	if !cfg.Benchmark.Enabled {
+		t.Fatal("Benchmark.Enabled = false, want true")
+	}
+}
+
+func TestApplyRunConfigOverrides_BaselineUnsetPreservesConfig(t *testing.T) {
+	t.Parallel()
+
+	cmd := &cobra.Command{}
+	cmd.Flags().Bool("baseline", false, "")
+
+	cfg := config.DefaultEvalConfig()
+	cfg.Benchmark.Enabled = false
+	if err := applyRunConfigOverrides(cfg, cmd); err != nil {
+		t.Fatalf("applyRunConfigOverrides: %v", err)
+	}
+	if cfg.Benchmark.Enabled {
+		t.Fatal("Benchmark.Enabled = true, want false")
 	}
 }
 
